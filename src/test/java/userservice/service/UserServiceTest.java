@@ -3,10 +3,10 @@ package userservice.service;
 import userservice.dto.UserRequestDto;
 import userservice.dto.UserResponseDto;
 import userservice.entity.AppUser;
+import userservice.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import userservice.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -19,12 +19,14 @@ import static org.mockito.Mockito.*;
 class UserServiceTest {
 
     private UserRepository repository;
+    private UserEventPublisher publisher;
     private UserService service;
 
     @BeforeEach
     void setUp() {
         repository = mock(UserRepository.class);
-        service = new UserService(repository);
+        publisher = mock(UserEventPublisher.class);
+        service = new UserService(repository, publisher);
     }
 
     @Test
@@ -46,9 +48,13 @@ class UserServiceTest {
         assertEquals("alena@mail.com", response.email());
         assertEquals(25, response.age());
 
+        // проверка что метод сохранения вызван с правильными данными
         ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
         verify(repository).save(captor.capture());
         assertEquals("Alena", captor.getValue().getName());
+
+        //  проверка, что событие отправлено
+        verify(publisher).sendUserCreated("alena@mail.com");
     }
 
     @Test
@@ -118,11 +124,17 @@ class UserServiceTest {
 
     @Test
     void shouldDeleteUserIfExists() {
-        when(repository.existsById(1L)).thenReturn(true);
+        AppUser user = new AppUser();
+        user.setId(1L);
+        user.setEmail("alena@mail.com");
+
+        when(repository.findById(1L)).thenReturn(Optional.of(user));
         doNothing().when(repository).deleteById(1L);
 
         assertDoesNotThrow(() -> service.delete(1L));
 
         verify(repository).deleteById(1L);
+        //  проверка, что событие удаления отправлено
+        verify(publisher).sendUserDeleted("alena@mail.com");
     }
 }

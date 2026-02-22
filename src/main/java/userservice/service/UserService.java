@@ -15,6 +15,7 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository repository;
+    private final UserEventPublisher publisher;
 
     public UserResponseDto create(UserRequestDto dto) {
         AppUser user = new AppUser();
@@ -23,6 +24,9 @@ public class UserService {
         user.setAge(dto.age());
 
         AppUser saved = repository.save(user);
+
+        publisher.sendUserCreated(saved.getEmail());
+
         return mapToDto(saved);
     }
 
@@ -52,10 +56,12 @@ public class UserService {
     }
 
     public void delete(Long id) {
-        if (!repository.existsById(id)) {
-            throw new UserNotFoundException(id);
-        }
+        AppUser user = repository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+
         repository.deleteById(id);
+
+        publisher.sendUserDeleted(user.getEmail());
     }
 
     private UserResponseDto mapToDto(AppUser user) {
