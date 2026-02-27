@@ -1,11 +1,14 @@
 package userservice.apitest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.hateoas.EntityModel;
 import userservice.controller.UserController;
 import userservice.dto.UserRequestDto;
 import userservice.dto.UserResponseDto;
 import userservice.exception.UserNotFoundException;
 import userservice.service.UserService;
+import userservice.assembler.UserModelAssembler;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +24,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.doThrow;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -37,6 +40,9 @@ class UserControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private UserModelAssembler userModelAssembler;
 
     private UserResponseDto sampleUser;
 
@@ -55,12 +61,14 @@ class UserControllerTest {
     @Test
     void testCreateUser() throws Exception {
         UserRequestDto request = new UserRequestDto("Алена", "alena@example.com", 28);
+
         given(userService.create(any(UserRequestDto.class))).willReturn(sampleUser);
+        given(userModelAssembler.toModel(sampleUser)).willReturn(EntityModel.of(sampleUser));
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated()) // <- ожидание 201 вместо 200
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(sampleUser.id()))
                 .andExpect(jsonPath("$.name").value("Алена"))
                 .andExpect(jsonPath("$.email").value("alena@example.com"))
@@ -70,6 +78,7 @@ class UserControllerTest {
     @Test
     void testGetUserById() throws Exception {
         given(userService.getById(1L)).willReturn(sampleUser);
+        given(userModelAssembler.toModel(sampleUser)).willReturn(EntityModel.of(sampleUser));
 
         mockMvc.perform(get("/users/1"))
                 .andExpect(status().isOk())
@@ -80,11 +89,14 @@ class UserControllerTest {
     @Test
     void testGetAllUsers() throws Exception {
         given(userService.getAll()).willReturn(List.of(sampleUser));
+        given(userModelAssembler.toModel(sampleUser)).willReturn(EntityModel.of(sampleUser));
 
         mockMvc.perform(get("/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(sampleUser.id()))
-                .andExpect(jsonPath("$[0].name").value("Алена"));
+                .andExpect(jsonPath("_embedded.userResponseDtoList[0].id").value(sampleUser.id()))
+                .andExpect(jsonPath("_embedded.userResponseDtoList[0].name").value("Алена"))
+                .andExpect(jsonPath("_embedded.userResponseDtoList[0].email").value("alena@example.com"))
+                .andExpect(jsonPath("_embedded.userResponseDtoList[0].age").value(28));
     }
 
     @Test
@@ -93,6 +105,7 @@ class UserControllerTest {
         UserResponseDto updatedUser = new UserResponseDto(1L, "Алена Новая", "alena2@example.com", 30, LocalDateTime.now());
 
         given(userService.update(eq(1L), any(UserRequestDto.class))).willReturn(updatedUser);
+        given(userModelAssembler.toModel(updatedUser)).willReturn(EntityModel.of(updatedUser));
 
         mockMvc.perform(put("/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -169,7 +182,6 @@ class UserControllerTest {
 
     @Test
     void testDeleteNonExistingUser() throws Exception {
-        // Для void методов используется doThrow
         doThrow(new UserNotFoundException(999L)).when(userService).delete(999L);
 
         mockMvc.perform(delete("/users/999"))
