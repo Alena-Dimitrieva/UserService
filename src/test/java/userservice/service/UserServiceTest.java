@@ -6,6 +6,7 @@ import userservice.entity.AppUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import userservice.mapper.UserMapper;
 import userservice.repository.UserRepository;
 
 import java.time.LocalDateTime;
@@ -24,7 +25,8 @@ class UserServiceTest {
     @BeforeEach
     void setUp() {
         repository = mock(UserRepository.class);
-        service = new UserService(repository);
+        UserMapper mapper = new UserMapper(); // локальная переменная
+        service = new UserService(repository, mapper);
     }
 
     @Test

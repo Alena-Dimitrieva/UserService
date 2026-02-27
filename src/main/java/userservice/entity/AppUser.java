@@ -7,7 +7,13 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "app_user")
+@Table(
+        name = "app_user",
+        indexes = {
+                @Index(name = "idx_user_email", columnList = "email"),
+                @Index(name = "idx_user_age", columnList = "age")
+        }
+)
 @Getter
 @Setter
 public class AppUser {
@@ -23,19 +29,19 @@ public class AppUser {
     private String email;
 
     @Column(nullable = false)
-    private int age;
+    private Integer age;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     public void prePersist() {
-        createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
     }
 
     public AppUser() {}
 
-    public AppUser(String name, String email, int age) {
+    public AppUser(String name, String email, Integer age) {
         this.name = name;
         this.email = email;
         this.age = age;
