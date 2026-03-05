@@ -1,12 +1,13 @@
 package userservice.service;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import userservice.dto.UserRequestDto;
 import userservice.dto.UserResponseDto;
 import userservice.entity.AppUser;
 import userservice.exception.UserNotFoundException;
+import userservice.mapper.UserMapper;
 import userservice.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -15,28 +16,22 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository repository;
+    private final UserMapper mapper;
 
     public UserResponseDto create(UserRequestDto dto) {
-        AppUser user = new AppUser();
-        user.setName(dto.name());
-        user.setEmail(dto.email());
-        user.setAge(dto.age());
-
+        AppUser user = mapper.toEntity(dto);
         AppUser saved = repository.save(user);
-        return mapToDto(saved);
+        return mapper.toResponseDto(saved);
     }
 
     public UserResponseDto getById(Long id) {
         AppUser user = repository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
-        return mapToDto(user);
+        return mapper.toResponseDto(user);
     }
 
     public List<UserResponseDto> getAll() {
-        return repository.findAll()
-                .stream()
-                .map(this::mapToDto)
-                .toList();
+        return mapper.toResponseDtoList(repository.findAll());
     }
 
     public UserResponseDto update(Long id, UserRequestDto dto) {
@@ -48,7 +43,7 @@ public class UserService {
         user.setAge(dto.age());
 
         AppUser updated = repository.save(user);
-        return mapToDto(updated);
+        return mapper.toResponseDto(updated);
     }
 
     public void delete(Long id) {
@@ -56,15 +51,5 @@ public class UserService {
             throw new UserNotFoundException(id);
         }
         repository.deleteById(id);
-    }
-
-    private UserResponseDto mapToDto(AppUser user) {
-        return new UserResponseDto(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getAge(),
-                user.getCreatedAt()
-        );
     }
 }
