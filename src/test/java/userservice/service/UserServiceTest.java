@@ -1,5 +1,6 @@
 package userservice.service;
 
+import userservice.client.NotificationClient;
 import userservice.dto.UserRequestDto;
 import userservice.dto.UserResponseDto;
 import userservice.entity.AppUser;
@@ -20,13 +21,15 @@ class UserServiceTest {
 
     private UserRepository repository;
     private UserEventPublisher publisher;
+    private NotificationClient notificationClient;
     private UserService service;
 
     @BeforeEach
     void setUp() {
         repository = mock(UserRepository.class);
         publisher = mock(UserEventPublisher.class);
-        service = new UserService(repository, publisher);
+        notificationClient = mock(NotificationClient.class);
+        service = new UserService(repository, publisher, notificationClient);
     }
 
     @Test

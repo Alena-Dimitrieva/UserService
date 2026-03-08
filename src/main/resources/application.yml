@@ -1,3 +1,6 @@
+server:
+  port: 8082
+
 spring:
   kafka:
     bootstrap-servers: localhost:9092
@@ -15,3 +18,22 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+feign:
+  hystrix:
+    enabled: true
+resilience4j.circuitbreaker:
+  instances:
+    notificationService:
+      registerHealthIndicator: true
+      slidingWindowType: COUNT_BASED
+      slidingWindowSize: 5
+      minimumNumberOfCalls: 3
+      permittedNumberOfCallsInHalfOpenState: 2
+      waitDurationInOpenState: 5000
+      failureRateThreshold: 50
